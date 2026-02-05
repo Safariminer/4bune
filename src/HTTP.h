@@ -7,6 +7,7 @@
 
 #define HTTP_ENDPOINT_FUNC(x) \
 ::fourbune::http::response x(std::map<std::string, std::string> params, \
+    std::map<std::string, std::string> postParams, \
     char* request)
 
 namespace fourbune{
