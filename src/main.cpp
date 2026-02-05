@@ -42,6 +42,37 @@ std::map<std::string, std::string>
     return arguments;
 }
 
+std::map<std::string, std::string> parseHeader(char* data){
+
+    std::map<std::string,std::string> headers;
+    std::string currArg = "", currVal = "";
+    bool inVal = false;
+    
+    std::string headerLine = "", dummy = "";
+    std::stringstream dataStream(data);
+
+    std::getline(dataStream, dummy); // discard first line, GET/POST line
+
+    while(std::getline(dataStream, headerLine) && headerLine != ""){
+        for(const char& c : headerLine){
+            if(c == ':'){
+                if(inVal) currVal += ':';
+                inVal = true;
+
+            }
+            else {
+                (inVal ? currVal : currArg) += c;
+            }
+        }
+
+        headers[currArg] = currVal;
+        currArg = ""; currVal = "";
+    }
+
+    
+    return headers;
+}
+
 static void OnData(dyad_Event*e){
     std::optional<fourbune::http::response> r;
     
@@ -72,20 +103,23 @@ static void OnData(dyad_Event*e){
     
         std::map<std::string, std::string> arguments;
         std::map<std::string, std::string> postArgs;
+        std::map<std::string, std::string> headers;
         std::string argsList;
         argsList = std::string(endpoint);
         argsList.erase(0, endpoint_s.size() - 1);
 
         arguments = parseCompleteParamString(argsList);
         postArgs = parseCompleteParamString(std::string(e->data));
-        
+        headers = parseHeader(e->data);
 
         switch(event){
         case fourbune::http::HTTP_GET:
-            r = endpoints[endpoint_s]->get(arguments, postArgs, e->data);
+            r = endpoints[endpoint_s]->get(arguments, postArgs, headers, 
+                e->data);
             break;
         case fourbune::http::HTTP_POST:
-            r = endpoints[endpoint_s]->post(arguments, postArgs, e->data);
+            r = endpoints[endpoint_s]->post(arguments, postArgs, headers,
+                e->data);
             break;
         }
     }
@@ -124,10 +158,14 @@ int main(int argc, char** argv){
 
     std::cout << "4BUNE BOUCHOT\n-------------\n\n";
 
+
+    fourbune::messages::message_manager* messageManager
+        = new fourbune::messages::message_manager();
+
     std::cout << "Setting endpoint '/'..." << std::endl;
     endpoints["/"] = new fourbune::endpoints::Index();
     std::cout << "Setting endpoint '/post'..." << std::endl;
-    endpoints["/post"] = new fourbune::endpoints::Post();
+    endpoints["/post"] = new fourbune::endpoints::Post(messageManager);
 
     dyad_init();
     dyad_Stream* stream = dyad_newStream();

@@ -8,7 +8,12 @@
 #define HTTP_ENDPOINT_FUNC(x) \
 ::fourbune::http::response x(std::map<std::string, std::string> params, \
     std::map<std::string, std::string> postParams, \
+    std::map<std::string, std::string> headers, \
     char* request)
+
+#define HAS_HEADER(x)            (headers.find(x) !=    headers.end())
+#define HAS_PARAM(x)              (params.find(x) !=     params.end())
+#define HAS_POST_PARAM(x)     (postParams.find(x) != postParams.end())
 
 namespace fourbune{
 
